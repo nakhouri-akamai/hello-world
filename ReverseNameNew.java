@@ -1,3 +1,7 @@
+import java.time.LocalDate;
+import java.time.Period;
+import java.time.format.DateTimeParseException;
+import java.time.temporal.ChronoUnit;
 import java.util.Scanner;
 
 public class ReverseNameNew {
@@ -20,15 +24,18 @@ public class ReverseNameNew {
             // Refactored: Use reusable reverse function
             String reversedName = reverse(name);
 
-            // Refactored: Use validated date of birth input helper
-            String dob = promptDateOfBirth(scanner);
-            String reversedDob = reverse(dob);
+            LocalDate dob = promptDateOfBirth(scanner);
+            String reversedDob = reverse(dob.toString());
 
             String generation = getGeneration(dob);
+            String age = formatAge(dob);
+            long daysUntilBirthday = daysUntilNextBirthday(dob);
 
             System.out.println("Reversed name: " + reversedName);
             System.out.println("Reversed Date of Birth: " + reversedDob);
             System.out.println("Generation: " + generation);
+            System.out.println("Age: " + age);
+            System.out.println("Days until next birthday: " + daysUntilBirthday);
         }
     }
 
@@ -38,15 +45,21 @@ public class ReverseNameNew {
         return scanner.nextLine();
     }
 
-    // Refactored: loop to validate date format on input
-    private static String promptDateOfBirth(Scanner scanner) {
+    // Validates both date format and calendar validity using LocalDate parsing.
+    private static LocalDate promptDateOfBirth(Scanner scanner) {
         while (true) {
             System.out.print("Enter your date of birth (YYYY-MM-DD): ");
-            String dob = scanner.nextLine();
-            if (dob.matches("\\d{4}-\\d{2}-\\d{2}")) {
+            String dobInput = scanner.nextLine().trim();
+            try {
+                LocalDate dob = LocalDate.parse(dobInput);
+                if (dob.isAfter(LocalDate.now())) {
+                    System.out.println("Date of birth cannot be in the future.");
+                    continue;
+                }
                 return dob;
+            } catch (DateTimeParseException e) {
+                System.out.println("Invalid date format. Please use YYYY-MM-DD.");
             }
-            System.out.println("Invalid date format. Please use YYYY-MM-DD.");
         }
     }
 
@@ -55,11 +68,33 @@ public class ReverseNameNew {
         return new StringBuilder(input).reverse().toString();
     }
 
+    private static String formatAge(LocalDate dob) {
+        Period agePeriod = Period.between(dob, LocalDate.now());
+        int years = agePeriod.getYears();
+
+        if (years > 0) {
+            return years + " years";
+        }
+
+        int months = agePeriod.getMonths();
+        return months + " months";
+    }
+
+    private static long daysUntilNextBirthday(LocalDate dob) {
+        LocalDate today = LocalDate.now();
+        LocalDate nextBirthday = dob.withYear(today.getYear());
+
+        if (nextBirthday.isBefore(today)) {
+            nextBirthday = nextBirthday.plusYears(1);
+        }
+
+        return ChronoUnit.DAYS.between(today, nextBirthday);
+    }
+
     // Refactored: uses label constants
-    public static String getGeneration(String dob) {
+    public static String getGeneration(LocalDate dob) {
         try {
-            String yearString = dob.split("-")[0];
-            int year = Integer.parseInt(yearString);
+            int year = dob.getYear();
 
             if (year >= 1928 && year <= 1945) {
                 return SILENT;

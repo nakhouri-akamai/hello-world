@@ -1,0 +1,2086 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Profile Reverse Analyzer</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;500;700&family=IBM+Plex+Mono:wght@400;500&display=swap" rel="stylesheet">
+  <style>
+    :root {
+      --bg-1: #0f172a;
+      --bg-2: #1e293b;
+      --card: rgba(255, 255, 255, 0.08);
+      --line: rgba(255, 255, 255, 0.2);
+      --text: #f8fafc;
+      --muted: #cbd5e1;
+      --accent: #f59e0b;
+      --accent-2: #22d3ee;
+      --ok: #34d399;
+      --warn: #fb7185;
+    }
+
+    * {
+      box-sizing: border-box;
+    }
+
+    body {
+      margin: 0;
+      min-height: 100vh;
+      font-family: "Space Grotesk", sans-serif;
+      color: var(--text);
+      background:
+        radial-gradient(circle at 15% 20%, rgba(245, 158, 11, 0.25), transparent 35%),
+        radial-gradient(circle at 80% 15%, rgba(34, 211, 238, 0.25), transparent 30%),
+        linear-gradient(135deg, var(--bg-1), var(--bg-2));
+      display: grid;
+      place-items: center;
+      padding: 24px;
+      overflow-x: hidden;
+    }
+
+    .panel {
+      width: min(740px, 100%);
+      border: 1px solid var(--line);
+      border-radius: 20px;
+      background: var(--card);
+      backdrop-filter: blur(12px);
+      padding: 28px;
+      box-shadow: 0 24px 48px rgba(0, 0, 0, 0.35);
+      animation: riseIn 550ms ease;
+    }
+
+    .apps {
+      display: grid;
+      gap: 20px;
+    }
+
+    .tabs {
+      display: flex;
+      gap: 10px;
+      margin: 0 0 16px;
+      flex-wrap: wrap;
+    }
+
+    .tab-btn {
+      border: 1px solid var(--line);
+      border-radius: 999px;
+      padding: 8px 14px;
+      background: rgba(15, 23, 42, 0.55);
+      color: var(--text);
+      font: inherit;
+      font-weight: 600;
+      cursor: pointer;
+      transition: transform 180ms ease, border-color 180ms ease, background 180ms ease;
+    }
+
+    .tab-btn:hover {
+      transform: translateY(-1px);
+      border-color: var(--accent-2);
+    }
+
+    .tab-btn.active {
+      background: linear-gradient(90deg, var(--accent), #f97316);
+      color: #1a1205;
+      border-color: transparent;
+    }
+
+    .app-card {
+      border: 1px solid var(--line);
+      border-radius: 16px;
+      background: rgba(15, 23, 42, 0.42);
+      padding: 16px;
+    }
+
+    .app-card.hidden {
+      display: none;
+    }
+
+    .app-card h2 {
+      margin: 0 0 8px;
+      font-size: clamp(1.1rem, 2.4vw, 1.35rem);
+    }
+
+    .app-sub {
+      margin: 0 0 16px;
+      color: var(--muted);
+      font-size: 0.92rem;
+    }
+
+    h1 {
+      margin: 0 0 10px;
+      font-size: clamp(1.6rem, 3vw, 2.2rem);
+      letter-spacing: 0.02em;
+    }
+
+    .sub {
+      margin: 0 0 24px;
+      color: var(--muted);
+      font-size: 0.98rem;
+    }
+
+    form {
+      display: grid;
+      gap: 14px;
+    }
+
+    label {
+      font-weight: 500;
+      font-size: 0.95rem;
+    }
+
+    input {
+      width: 100%;
+      margin-top: 6px;
+      border: 1px solid var(--line);
+      border-radius: 12px;
+      padding: 12px 14px;
+      color: var(--text);
+      background: rgba(15, 23, 42, 0.7);
+      font: inherit;
+      transition: border-color 180ms ease, transform 180ms ease;
+    }
+
+    input:focus {
+      outline: none;
+      border-color: var(--accent-2);
+      transform: translateY(-1px);
+    }
+
+    button {
+      margin-top: 8px;
+      border: 0;
+      border-radius: 12px;
+      padding: 12px 16px;
+      font: inherit;
+      font-weight: 700;
+      background: linear-gradient(90deg, var(--accent), #f97316);
+      color: #1a1205;
+      cursor: pointer;
+      transition: transform 200ms ease, filter 200ms ease;
+    }
+
+    button:hover {
+      transform: translateY(-2px);
+      filter: brightness(1.05);
+    }
+
+    .button-row {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 10px;
+      margin-top: 10px;
+    }
+
+    .button-secondary {
+      background: rgba(15, 23, 42, 0.7);
+      color: var(--text);
+      border: 1px solid var(--line);
+    }
+
+    .button-secondary:hover {
+      border-color: var(--accent-2);
+      filter: brightness(1.02);
+    }
+
+    .msg {
+      margin-top: 14px;
+      min-height: 22px;
+      font-weight: 500;
+    }
+
+    .msg.error {
+      color: var(--warn);
+    }
+
+    .msg.success {
+      color: var(--ok);
+    }
+
+    .results {
+      margin-top: 20px;
+      display: grid;
+      gap: 10px;
+    }
+
+    .row {
+      display: grid;
+      grid-template-columns: 220px 1fr;
+      gap: 10px;
+      align-items: start;
+      border: 1px solid var(--line);
+      border-radius: 12px;
+      padding: 10px 12px;
+      background: rgba(15, 23, 42, 0.55);
+      opacity: 0;
+      transform: translateY(8px);
+      animation: staggerIn 350ms ease forwards;
+    }
+
+    .row:nth-child(2) { animation-delay: 60ms; }
+    .row:nth-child(3) { animation-delay: 120ms; }
+    .row:nth-child(4) { animation-delay: 180ms; }
+    .row:nth-child(5) { animation-delay: 240ms; }
+
+    .label {
+      color: var(--muted);
+      font-weight: 500;
+    }
+
+    .value {
+      font-family: "IBM Plex Mono", monospace;
+      word-break: break-word;
+    }
+
+    .quiz-list {
+      display: grid;
+      gap: 12px;
+      margin-top: 8px;
+    }
+
+    .question {
+      border: 1px solid var(--line);
+      border-radius: 12px;
+      padding: 10px 12px;
+      background: rgba(15, 23, 42, 0.55);
+    }
+
+    .question.revealed {
+      border-color: var(--accent-2);
+      background: rgba(34, 211, 238, 0.12);
+    }
+
+    .question legend {
+      padding: 0 6px;
+      font-weight: 600;
+      color: var(--muted);
+    }
+
+    .question-options {
+      display: grid;
+      gap: 8px;
+      margin-top: 8px;
+    }
+
+    .option {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      font-size: 0.95rem;
+    }
+
+    .option input {
+      width: auto;
+      margin: 0;
+      transform: none;
+    }
+
+    @keyframes riseIn {
+      from { opacity: 0; transform: translateY(14px) scale(0.98); }
+      to { opacity: 1; transform: translateY(0) scale(1); }
+    }
+
+    @keyframes staggerIn {
+      to { opacity: 1; transform: translateY(0); }
+    }
+
+    @media (max-width: 640px) {
+      .panel {
+        padding: 20px;
+      }
+
+      .row {
+        grid-template-columns: 1fr;
+      }
+    }
+  </style>
+</head>
+<body>
+  <main class="panel">
+    <h1>Profile Reverse Analyzer</h1>
+    <p class="sub">Enter a name and date of birth to reverse inputs, calculate age, classify generation, and count days to next birthday.</p>
+
+    <section class="apps">
+      <nav class="tabs" aria-label="App switcher">
+        <button type="button" class="tab-btn active" id="tabProfile" data-target="profileApp" aria-selected="true">Profile Analyzer</button>
+        <button type="button" class="tab-btn" id="tabText" data-target="textApp" aria-selected="false">Text Utility</button>
+        <button type="button" class="tab-btn" id="tabChemistry" data-target="chemistryApp" aria-selected="false">Chemistry Quiz</button>
+        <button type="button" class="tab-btn" id="tabMaths" data-target="mathsApp" aria-selected="false">Maths Quiz</button>
+        <button type="button" class="tab-btn" id="tabPhysics" data-target="physicsApp" aria-selected="false">Physics Quiz</button>
+        <button type="button" class="tab-btn" id="tabBiology" data-target="biologyApp" aria-selected="false">Biology Quiz</button>
+      </nav>
+
+      <article class="app-card" id="profileApp">
+        <h2>App 1: Profile Reverse Analyzer</h2>
+        <p class="app-sub">Enter a name and date of birth to reverse inputs, calculate age, classify generation, and count days to next birthday.</p>
+
+        <form id="profileForm" novalidate>
+          <label for="nameInput">Name
+            <input id="nameInput" type="text" placeholder="e.g. Alex Morgan" required>
+          </label>
+
+          <label for="dobInput">Date of Birth
+            <input id="dobInput" type="date" required>
+          </label>
+
+          <button type="submit">Analyze</button>
+        </form>
+
+        <div id="message" class="msg" aria-live="polite"></div>
+        <section id="results" class="results" aria-live="polite"></section>
+      </article>
+
+      <article class="app-card hidden" id="textApp">
+        <h2>App 2: Text Utility Analyzer</h2>
+        <p class="app-sub">Enter text to reverse it, count words and characters, and detect palindrome phrases.</p>
+
+        <form id="textForm" novalidate>
+          <label for="textInput">Text
+            <input id="textInput" type="text" placeholder="e.g. Never odd or even" required>
+          </label>
+
+          <button type="submit">Process Text</button>
+        </form>
+
+        <div id="textMessage" class="msg" aria-live="polite"></div>
+        <section id="textResults" class="results" aria-live="polite"></section>
+      </article>
+
+      <article class="app-card hidden" id="chemistryApp">
+        <h2>App 3: Grade 8 IGCSE Chemistry Quiz</h2>
+        <p class="app-sub">20 questions on atomic structure and periodic table basics. Answer all questions, then submit to get your score.</p>
+
+        <form id="chemistryQuizForm" novalidate>
+          <section id="chemistryQuestions" class="quiz-list" aria-live="polite"></section>
+          <div class="button-row">
+            <button type="submit">Submit Quiz</button>
+            <button type="button" id="shuffleQuizBtn" class="button-secondary">Shuffle Questions</button>
+            <button type="button" id="retryQuizBtn" class="button-secondary">Retry Quiz</button>
+          </div>
+        </form>
+
+        <div id="chemistryMessage" class="msg" aria-live="polite"></div>
+        <section id="chemistryResults" class="results" aria-live="polite"></section>
+      </article>
+
+      <article class="app-card hidden" id="mathsApp">
+        <h2>App 4: Grade 8 IGCSE Maths Quiz</h2>
+        <p class="app-sub">20 random questions from a runtime 100-question bank on surds, standard form, indices, decimal operations, compound percentages, and bounds.</p>
+
+        <form id="mathsQuizForm" novalidate>
+          <section id="mathsQuestions" class="quiz-list" aria-live="polite"></section>
+          <div class="button-row">
+            <button type="submit">Submit Quiz</button>
+            <button type="button" id="shuffleMathsBtn" class="button-secondary">Shuffle Questions</button>
+            <button type="button" id="retryMathsBtn" class="button-secondary">Retry Quiz</button>
+          </div>
+        </form>
+
+        <div id="mathsMessage" class="msg" aria-live="polite"></div>
+        <section id="mathsResults" class="results" aria-live="polite"></section>
+      </article>
+
+      <article class="app-card hidden" id="physicsApp">
+        <h2>App 5: Grade 8 IGCSE Physics Quiz</h2>
+        <p class="app-sub">20 questions on physical quantities, motion graphs, and density. Answer all questions, then submit to get your score.</p>
+
+        <form id="physicsQuizForm" novalidate>
+          <section id="physicsQuestions" class="quiz-list" aria-live="polite"></section>
+          <div class="button-row">
+            <button type="submit">Submit Quiz</button>
+            <button type="button" id="shufflePhysicsBtn" class="button-secondary">Shuffle Questions</button>
+            <button type="button" id="retryPhysicsBtn" class="button-secondary">Retry Quiz</button>
+          </div>
+        </form>
+
+        <div id="physicsMessage" class="msg" aria-live="polite"></div>
+        <section id="physicsResults" class="results" aria-live="polite"></section>
+      </article>
+
+      <article class="app-card hidden" id="biologyApp">
+        <h2>App 6: Grade 8 IGCSE Biology Quiz</h2>
+        <p class="app-sub">20 questions on photosynthesis, leaf structure, minerals, and the carbon cycle. Answer all questions, then submit to get your score.</p>
+
+        <form id="biologyQuizForm" novalidate>
+          <section id="biologyQuestions" class="quiz-list" aria-live="polite"></section>
+          <div class="button-row">
+            <button type="submit">Submit Quiz</button>
+            <button type="button" id="shuffleBiologyBtn" class="button-secondary">Shuffle Questions</button>
+            <button type="button" id="retryBiologyBtn" class="button-secondary">Retry Quiz</button>
+          </div>
+        </form>
+
+        <div id="biologyMessage" class="msg" aria-live="polite"></div>
+        <section id="biologyResults" class="results" aria-live="polite"></section>
+      </article>
+    </section>
+  </main>
+
+  <script>
+    function reverseString(value) {
+      return value.split("").reverse().join("");
+    }
+
+    function isLeapYear(year) {
+      return (year % 4 === 0 && year % 100 !== 0) || (year % 400 === 0);
+    }
+
+    function safeBirthdayInYear(month, day, year) {
+      if (month === 2 && day === 29 && !isLeapYear(year)) {
+        return new Date(year, 1, 28);
+      }
+      return new Date(year, month - 1, day);
+    }
+
+    function getGeneration(year) {
+      if (year >= 1928 && year <= 1945) return "Silent Generation";
+      if (year >= 1946 && year <= 1964) return "Baby Boomer";
+      if (year >= 1965 && year <= 1980) return "Generation X";
+      if (year >= 1981 && year <= 1996) return "Millennial";
+      if (year >= 1997 && year <= 2012) return "Generation Z";
+      if (year >= 2013) return "Generation Alpha";
+      return "Unknown Generation";
+    }
+
+    function formatAge(dob, today) {
+      let months = (today.getFullYear() - dob.getFullYear()) * 12 +
+        (today.getMonth() - dob.getMonth());
+
+      if (today.getDate() < dob.getDate()) {
+        months -= 1;
+      }
+
+      if (months < 12) {
+        return String(Math.max(0, months)) + " months";
+      }
+
+      const years = Math.floor(months / 12);
+      return String(years) + " years";
+    }
+
+    function daysUntilNextBirthday(dob, today) {
+      let nextBirthday = safeBirthdayInYear(
+        dob.getMonth() + 1,
+        dob.getDate(),
+        today.getFullYear()
+      );
+
+      const todayStart = new Date(today.getFullYear(), today.getMonth(), today.getDate());
+
+      if (nextBirthday < todayStart) {
+        nextBirthday = safeBirthdayInYear(
+          dob.getMonth() + 1,
+          dob.getDate(),
+          today.getFullYear() + 1
+        );
+      }
+
+      const diffMs = nextBirthday.getTime() - todayStart.getTime();
+      return Math.floor(diffMs / (1000 * 60 * 60 * 24));
+    }
+
+    function renderResults(items) {
+      const results = document.getElementById("results");
+      results.innerHTML = "";
+
+      items.forEach(function(item) {
+        const row = document.createElement("article");
+        row.className = "row";
+
+        const label = document.createElement("div");
+        label.className = "label";
+        label.textContent = item.label;
+
+        const value = document.createElement("div");
+        value.className = "value";
+        value.textContent = item.value;
+
+        row.appendChild(label);
+        row.appendChild(value);
+        results.appendChild(row);
+      });
+    }
+
+    function renderTextResults(items) {
+      const results = document.getElementById("textResults");
+      results.innerHTML = "";
+
+      items.forEach(function(item) {
+        const row = document.createElement("article");
+        row.className = "row";
+
+        const label = document.createElement("div");
+        label.className = "label";
+        label.textContent = item.label;
+
+        const value = document.createElement("div");
+        value.className = "value";
+        value.textContent = item.value;
+
+        row.appendChild(label);
+        row.appendChild(value);
+        results.appendChild(row);
+      });
+    }
+
+    function activateTab(tabButton) {
+      const buttons = document.querySelectorAll(".tab-btn");
+      const cards = document.querySelectorAll(".app-card");
+      const targetId = tabButton.getAttribute("data-target");
+
+      buttons.forEach(function(button) {
+        const isActive = button === tabButton;
+        button.classList.toggle("active", isActive);
+        button.setAttribute("aria-selected", isActive ? "true" : "false");
+      });
+
+      cards.forEach(function(card) {
+        const isTarget = card.id === targetId;
+        card.classList.toggle("hidden", !isTarget);
+      });
+    }
+
+    function isPalindromePhrase(value) {
+      const cleaned = value.toLowerCase().replace(/[^a-z0-9]/g, "");
+      if (!cleaned) {
+        return false;
+      }
+      return cleaned === reverseString(cleaned);
+    }
+
+    function countWords(value) {
+      const words = value.trim().split(/\s+/).filter(Boolean);
+      return words.length;
+    }
+
+    const chemistrySeedQuestions = [
+      {
+        question: "What is the tiny, dense, positively charged center of an atom called?",
+        options: ["Electron cloud", "Nucleus", "Ion", "Molecule"],
+        answerIndex: 1
+      },
+      {
+        question: "What is the relative charge of a proton?",
+        options: ["-1", "+1", "0", "+2"],
+        answerIndex: 1
+      },
+      {
+        question: "Which particle has a relative mass of about 1 and no charge?",
+        options: ["Proton", "Electron", "Neutron", "Nucleus"],
+        answerIndex: 2
+      },
+      {
+        question: "Where are electrons found in an atom?",
+        options: ["Inside the nucleus", "In shells around the nucleus", "In the proton", "Only in ions"],
+        answerIndex: 1
+      },
+      {
+        question: "The atomic number tells you the number of which particle?",
+        options: ["Neutrons", "Electrons and neutrons", "Protons", "Nucleons"],
+        answerIndex: 2
+      },
+      {
+        question: "Mass number is the total number of:",
+        options: ["Protons + neutrons", "Protons + electrons", "Electrons + neutrons", "Shells"],
+        answerIndex: 0
+      },
+      {
+        question: "Isotopes of an element have the same number of protons but different numbers of:",
+        options: ["Electrons", "Neutrons", "Shells", "Valence electrons"],
+        answerIndex: 1
+      },
+      {
+        question: "A neutral atom always has:",
+        options: ["More protons than electrons", "More electrons than protons", "Equal protons and electrons", "No neutrons"],
+        answerIndex: 2
+      },
+      {
+        question: "What is the electronic configuration of chlorine (atomic number 17)?",
+        options: ["2,8,6", "2,8,7", "2,7,8", "2,8,8"],
+        answerIndex: 1
+      },
+      {
+        question: "In the periodic table, period number shows the number of:",
+        options: ["Protons", "Neutrons", "Electron shells", "Isotopes"],
+        answerIndex: 2
+      },
+      {
+        question: "For main-group elements, group number usually shows the number of:",
+        options: ["Neutrons", "Outer-shell electrons", "Shells", "Protons + neutrons"],
+        answerIndex: 1
+      },
+      {
+        question: "Group 1 elements are called:",
+        options: ["Noble gases", "Halogens", "Alkali metals", "Transition metals"],
+        answerIndex: 2
+      },
+      {
+        question: "Group 17 elements are called:",
+        options: ["Halogens", "Alkali metals", "Noble gases", "Lanthanides"],
+        answerIndex: 0
+      },
+      {
+        question: "Why are group 18 elements generally unreactive?",
+        options: ["They have no electrons", "They have full outer shells", "They are all metals", "They have only one shell"],
+        answerIndex: 1
+      },
+      {
+        question: "How does reactivity change down Group 1?",
+        options: ["Increases", "Decreases", "Stays the same", "Becomes zero"],
+        answerIndex: 0
+      },
+      {
+        question: "Across a period from left to right, elements generally become:",
+        options: ["More metallic", "Less metallic", "Larger in size", "More like noble gases immediately"],
+        answerIndex: 1
+      },
+      {
+        question: "Sodium (Na) is in:",
+        options: ["Group 1, Period 3", "Group 3, Period 1", "Group 2, Period 3", "Group 1, Period 2"],
+        answerIndex: 0
+      },
+      {
+        question: "Which element has atomic number 8?",
+        options: ["Nitrogen", "Oxygen", "Fluorine", "Carbon"],
+        answerIndex: 1
+      },
+      {
+        question: "Calcium is in Group 2. Which ion does it usually form?",
+        options: ["Ca+", "Ca2+", "Ca2-", "Ca-"],
+        answerIndex: 1
+      },
+      {
+        question: "Where are transition metals found in the periodic table?",
+        options: ["Far right side only", "In the center block", "Top row only", "Bottom row only"],
+        answerIndex: 1
+      }
+    ];
+
+    let chemistryQuestions = chemistrySeedQuestions.map(function(item) {
+      return {
+        question: item.question,
+        options: item.options.slice(),
+        answerIndex: item.answerIndex
+      };
+    });
+
+    let chemistryWrongAttempts = {};
+    let chemistryRevealed = {};
+
+    function shuffleArray(values) {
+      const copy = values.slice();
+      for (let i = copy.length - 1; i > 0; i -= 1) {
+        const j = Math.floor(Math.random() * (i + 1));
+        const temp = copy[i];
+        copy[i] = copy[j];
+        copy[j] = temp;
+      }
+      return copy;
+    }
+
+    function resetChemistryQuizView() {
+      document.getElementById("chemistryQuizForm").reset();
+      document.getElementById("chemistryMessage").textContent = "";
+      document.getElementById("chemistryMessage").className = "msg";
+      renderChemistryResults([]);
+    }
+
+    function resetChemistryAttemptState() {
+      chemistryWrongAttempts = {};
+      chemistryRevealed = {};
+    }
+
+    function revealCorrectAnswer(questionIndex, answerIndex) {
+      const fieldset = document.querySelectorAll(".question")[questionIndex];
+      if (!fieldset) {
+        return;
+      }
+
+      fieldset.classList.add("revealed");
+      const radios = fieldset.querySelectorAll("input[type='radio']");
+      radios.forEach(function(radio, idx) {
+        radio.checked = idx === answerIndex;
+        radio.disabled = true;
+      });
+    }
+
+    function renderChemistryQuiz() {
+      const container = document.getElementById("chemistryQuestions");
+      container.innerHTML = "";
+
+      chemistryQuestions.forEach(function(item, questionIndex) {
+        const fieldset = document.createElement("fieldset");
+        fieldset.className = "question";
+
+        const legend = document.createElement("legend");
+        legend.textContent = "Q" + String(questionIndex + 1) + ". " + item.question;
+        fieldset.appendChild(legend);
+
+        const options = document.createElement("div");
+        options.className = "question-options";
+
+        item.options.forEach(function(optionText, optionIndex) {
+          const optionLabel = document.createElement("label");
+          optionLabel.className = "option";
+
+          const input = document.createElement("input");
+          input.type = "radio";
+          input.name = "chemQ" + String(questionIndex);
+          input.value = String(optionIndex);
+
+          const text = document.createElement("span");
+          text.textContent = optionText;
+
+          optionLabel.appendChild(input);
+          optionLabel.appendChild(text);
+          options.appendChild(optionLabel);
+        });
+
+        fieldset.appendChild(options);
+        container.appendChild(fieldset);
+      });
+    }
+
+    function scoreChemistryQuiz() {
+      let score = 0;
+      let unanswered = 0;
+      let retryableWrong = 0;
+      let revealedCount = 0;
+      const detailed = [];
+
+      chemistryQuestions.forEach(function(item, index) {
+        if (chemistryRevealed[index]) {
+          revealedCount += 1;
+          detailed.push({
+            label: "Q" + String(index + 1),
+            value: "Answer revealed: " + item.options[item.answerIndex]
+          });
+          return;
+        }
+
+        const selected = document.querySelector("input[name='chemQ" + String(index) + "']:checked");
+        if (!selected) {
+          unanswered += 1;
+          detailed.push({
+            label: "Q" + String(index + 1),
+            value: "Not answered. Correct: " + item.options[item.answerIndex]
+          });
+          return;
+        }
+
+        const chosenIndex = Number(selected.value);
+        const isCorrect = chosenIndex === item.answerIndex;
+        if (isCorrect) {
+          score += 1;
+          chemistryWrongAttempts[index] = 0;
+          detailed.push({
+            label: "Q" + String(index + 1),
+            value: "Correct"
+          });
+          return;
+        }
+
+        const attempts = (chemistryWrongAttempts[index] || 0) + 1;
+        chemistryWrongAttempts[index] = attempts;
+
+        if (attempts >= 2) {
+          chemistryRevealed[index] = true;
+          revealedCount += 1;
+          revealCorrectAnswer(index, item.answerIndex);
+          detailed.push({
+            label: "Q" + String(index + 1),
+            value: "Incorrect twice. Correct answer revealed: " + item.options[item.answerIndex]
+          });
+          return;
+        }
+
+        retryableWrong += 1;
+        detailed.push({
+          label: "Q" + String(index + 1),
+          value: "Incorrect. Try again (attempt " + String(attempts) + " of 2)."
+        });
+
+        selected.checked = false;
+      });
+
+      return {
+        score: score,
+        unanswered: unanswered,
+        retryableWrong: retryableWrong,
+        revealedCount: revealedCount,
+        detailed: detailed
+      };
+    }
+
+    function renderChemistryResults(items) {
+      const results = document.getElementById("chemistryResults");
+      results.innerHTML = "";
+
+      items.forEach(function(item) {
+        const row = document.createElement("article");
+        row.className = "row";
+
+        const label = document.createElement("div");
+        label.className = "label";
+        label.textContent = item.label;
+
+        const value = document.createElement("div");
+        value.className = "value";
+        value.textContent = item.value;
+
+        row.appendChild(label);
+        row.appendChild(value);
+        results.appendChild(row);
+      });
+    }
+
+    function uniqueOptionsWithAnswer(correct, distractors) {
+      const seen = {};
+      const options = [];
+
+      [correct].concat(distractors).forEach(function(value) {
+        const key = String(value);
+        if (!seen[key] && options.length < 4) {
+          seen[key] = true;
+          options.push(key);
+        }
+      });
+
+      while (options.length < 4) {
+        options.push(String(correct) + " alt " + String(options.length));
+      }
+
+      const shuffled = shuffleArray(options);
+      return {
+        options: shuffled,
+        answerIndex: shuffled.indexOf(String(correct))
+      };
+    }
+
+    function toFixedTrim(value) {
+      return Number(value.toFixed(2)).toString();
+    }
+
+    function generateMathsQuestionBank() {
+      const bank = [];
+
+      const squareFree = [2, 3, 5, 6, 7, 10, 11, 13, 14, 15];
+      for (let i = 0; i < 10; i += 1) {
+        const k = squareFree[i];
+        const m = i + 2;
+        const inside = k * m * m;
+        const correct = String(m) + "sqrt(" + String(k) + ")";
+        const choices = uniqueOptionsWithAnswer(correct, [
+          String(k) + "sqrt(" + String(m) + ")",
+          "sqrt(" + String(k) + ")",
+          String(m + 1) + "sqrt(" + String(k) + ")"
+        ]);
+        bank.push({
+          question: "Simplify sqrt(" + String(inside) + ").",
+          options: choices.options,
+          answerIndex: choices.answerIndex
+        });
+      }
+
+      for (let i = 0; i < 10; i += 1) {
+        const n = i + 2;
+        const irrational = "sqrt(" + String(squareFree[i]) + ")";
+        const rational1 = String(n * n);
+        const rational2 = String(n) + "/" + String(n + 1);
+        const rational3 = "0." + String(n) + String((n + 1) % 10);
+        const choices = uniqueOptionsWithAnswer(irrational, [rational1, rational2, rational3]);
+        bank.push({
+          question: "Which of these is irrational?",
+          options: choices.options,
+          answerIndex: choices.answerIndex
+        });
+      }
+
+      for (let i = 0; i < 10; i += 1) {
+        const coeff = (i % 8) + 1;
+        const decimal = coeff + (i % 3 === 0 ? 0.2 : i % 3 === 1 ? 0.5 : 0.8);
+        const power = (i % 5) + 2;
+        const ordinary = String(decimal * Math.pow(10, power));
+        const correct = String(decimal) + " x 10^" + String(power);
+        const choices = uniqueOptionsWithAnswer(correct, [
+          String(decimal * 10) + " x 10^" + String(power - 1),
+          String(decimal) + " x 10^" + String(power + 1),
+          String(decimal / 10) + " x 10^" + String(power)
+        ]);
+        bank.push({
+          question: "Write " + ordinary + " in standard form.",
+          options: choices.options,
+          answerIndex: choices.answerIndex
+        });
+      }
+
+      for (let i = 0; i < 10; i += 1) {
+        const coeff = (i % 9) + 1;
+        const c = coeff + (i % 2 === 0 ? 0.4 : 0.7);
+        const power = (i % 6) - 3;
+        const ordinary = toFixedTrim(c * Math.pow(10, power));
+        const standard = String(c) + " x 10^" + String(power);
+        const choices = uniqueOptionsWithAnswer(ordinary, [
+          toFixedTrim(c * Math.pow(10, power + 1)),
+          toFixedTrim(c * Math.pow(10, power - 1)),
+          toFixedTrim((c + 1) * Math.pow(10, power))
+        ]);
+        bank.push({
+          question: "Write " + standard + " as an ordinary number.",
+          options: choices.options,
+          answerIndex: choices.answerIndex
+        });
+      }
+
+      for (let i = 0; i < 10; i += 1) {
+        const base = (i % 5) + 2;
+        const m = (i % 4) + 2;
+        const n = (i % 3) + 2;
+        const correct = String(base) + "^" + String(m + n);
+        const choices = uniqueOptionsWithAnswer(correct, [
+          String(base) + "^" + String(m * n),
+          String(base) + "^" + String(m - n),
+          String(base + 1) + "^" + String(m + n)
+        ]);
+        bank.push({
+          question: "Simplify " + String(base) + "^" + String(m) + " x " + String(base) + "^" + String(n) + ".",
+          options: choices.options,
+          answerIndex: choices.answerIndex
+        });
+      }
+
+      for (let i = 0; i < 5; i += 1) {
+        const base = (i % 4) + 2;
+        const m = i + 5;
+        const n = i + 2;
+        const correct = String(base) + "^" + String(m - n);
+        const choices = uniqueOptionsWithAnswer(correct, [
+          String(base) + "^" + String(m + n),
+          String(base) + "^" + String(n - m),
+          String(base + 1) + "^" + String(m - n)
+        ]);
+        bank.push({
+          question: "Simplify " + String(base) + "^" + String(m) + " / " + String(base) + "^" + String(n) + ".",
+          options: choices.options,
+          answerIndex: choices.answerIndex
+        });
+      }
+
+      for (let i = 0; i < 5; i += 1) {
+        const a = i + 2;
+        const b = i + 2;
+        const correct = String(a * b);
+        const choices = uniqueOptionsWithAnswer(correct, [
+          String(a + b),
+          String(a * a),
+          String(b * b)
+        ]);
+        bank.push({
+          question: "Evaluate " + String(a) + "^(1/2) x " + String(a) + "^(1/2).",
+          options: choices.options,
+          answerIndex: choices.answerIndex
+        });
+      }
+
+      for (let i = 0; i < 10; i += 1) {
+        const num = (i + 12) / 10;
+        const pow = (i % 4) + 1;
+        const correct = toFixedTrim(num * Math.pow(10, pow));
+        const choices = uniqueOptionsWithAnswer(correct, [
+          toFixedTrim(num / Math.pow(10, pow)),
+          toFixedTrim(num * Math.pow(10, pow + 1)),
+          toFixedTrim((num + 0.1) * Math.pow(10, pow))
+        ]);
+        bank.push({
+          question: "Evaluate " + String(num) + " x 10^" + String(pow) + ".",
+          options: choices.options,
+          answerIndex: choices.answerIndex
+        });
+      }
+
+      for (let i = 0; i < 10; i += 1) {
+        const principal = 100 + i * 25;
+        const rate = i % 2 === 0 ? 5 : 10;
+        const years = i % 3 === 0 ? 2 : 3;
+        const amount = toFixedTrim(principal * Math.pow(1 + rate / 100, years));
+        const choices = uniqueOptionsWithAnswer(amount, [
+          toFixedTrim(principal * (1 + (rate / 100) * years)),
+          toFixedTrim(principal * Math.pow(1 + rate / 100, years + 1)),
+          toFixedTrim(principal * Math.pow(1 - rate / 100, years))
+        ]);
+        bank.push({
+          question: "A value of " + String(principal) + " increases by " + String(rate) + "% each year for " + String(years) + " years. Find the final value.",
+          options: choices.options,
+          answerIndex: choices.answerIndex
+        });
+      }
+
+      for (let i = 0; i < 10; i += 1) {
+        const rounded = 10 + i * 5;
+        const unit = i % 2 === 0 ? 1 : 10;
+        const half = unit / 2;
+        const lower = rounded - half;
+        const upper = rounded + half;
+        const lowerText = toFixedTrim(lower);
+        const upperText = toFixedTrim(upper);
+        const correct = lowerText + " <= x < " + upperText;
+        const choices = uniqueOptionsWithAnswer(correct, [
+          lowerText + " < x <= " + upperText,
+          String(rounded - unit) + " <= x < " + String(rounded + unit),
+          lowerText + " <= x <= " + upperText
+        ]);
+        bank.push({
+          question: "A value rounds to " + String(rounded) + " to the nearest " + String(unit) + ". What are the bounds for x?",
+          options: choices.options,
+          answerIndex: choices.answerIndex
+        });
+      }
+
+      return bank;
+    }
+
+    const mathsQuestionBank = generateMathsQuestionBank();
+    let mathsQuestions = shuffleArray(mathsQuestionBank).slice(0, 20);
+    let mathsWrongAttempts = {};
+    let mathsRevealed = {};
+
+    const physicsSeedQuestions = [
+      {
+        question: "Which of these is a scalar quantity?",
+        options: ["Velocity", "Displacement", "Force", "Distance"],
+        answerIndex: 3
+      },
+      {
+        question: "Which quantity includes both size and direction?",
+        options: ["Speed", "Mass", "Time", "Velocity"],
+        answerIndex: 3
+      },
+      {
+        question: "What is the SI unit of mass?",
+        options: ["g", "kg", "N", "cm3"],
+        answerIndex: 1
+      },
+      {
+        question: "What is the SI unit of time?",
+        options: ["minute", "hour", "second", "day"],
+        answerIndex: 2
+      },
+      {
+        question: "Speed is calculated using:",
+        options: ["distance x time", "distance / time", "time / distance", "mass / volume"],
+        answerIndex: 1
+      },
+      {
+        question: "If an object travels 100 m in 20 s, what is its speed?",
+        options: ["2 m/s", "4 m/s", "5 m/s", "10 m/s"],
+        answerIndex: 2
+      },
+      {
+        question: "On a distance-time graph, a horizontal line means:",
+        options: ["Constant acceleration", "Object at rest", "Increasing speed", "Negative speed"],
+        answerIndex: 1
+      },
+      {
+        question: "The gradient of a distance-time graph represents:",
+        options: ["Acceleration", "Force", "Speed", "Density"],
+        answerIndex: 2
+      },
+      {
+        question: "A steeper line on a distance-time graph shows:",
+        options: ["Lower speed", "Higher speed", "Zero speed", "Negative time"],
+        answerIndex: 1
+      },
+      {
+        question: "On a velocity-time graph, the gradient represents:",
+        options: ["Distance", "Acceleration", "Speed", "Mass"],
+        answerIndex: 1
+      },
+      {
+        question: "The area under a velocity-time graph gives:",
+        options: ["Displacement", "Acceleration", "Force", "Density"],
+        answerIndex: 0
+      },
+      {
+        question: "A horizontal line above zero on a velocity-time graph means:",
+        options: ["Constant velocity", "Object at rest", "Increasing acceleration", "Decreasing time"],
+        answerIndex: 0
+      },
+      {
+        question: "What is density?",
+        options: ["Mass per unit volume", "Volume per unit mass", "Weight per unit area", "Mass x volume"],
+        answerIndex: 0
+      },
+      {
+        question: "The formula for density is:",
+        options: ["density = mass x volume", "density = mass / volume", "density = volume / mass", "density = force / area"],
+        answerIndex: 1
+      },
+      {
+        question: "Which state of matter usually has the highest density?",
+        options: ["Gas", "Liquid", "Solid", "Plasma"],
+        answerIndex: 2
+      },
+      {
+        question: "Which state of matter usually has the lowest density?",
+        options: ["Solid", "Liquid", "Gas", "All equal"],
+        answerIndex: 2
+      },
+      {
+        question: "If a solid has a lower density than water, it will usually:",
+        options: ["Sink", "Float", "Evaporate", "Dissolve"],
+        answerIndex: 1
+      },
+      {
+        question: "If an object has a greater density than a liquid, it will:",
+        options: ["Float", "Stay suspended", "Sink", "Stop moving"],
+        answerIndex: 2
+      },
+      {
+        question: "Why can a steel ship float even though steel is dense?",
+        options: ["It has no mass", "Its overall average density is less than water", "Water has no density", "Steel repels water"],
+        answerIndex: 1
+      },
+      {
+        question: "Which statement is correct about densities of solids, liquids, and gases?",
+        options: ["Gases are always denser than solids", "Liquids are always denser than solids", "Solids are generally denser than liquids, and liquids denser than gases", "All states have identical density"],
+        answerIndex: 2
+      }
+    ];
+
+    let physicsQuestions = physicsSeedQuestions.map(function(item) {
+      return {
+        question: item.question,
+        options: item.options.slice(),
+        answerIndex: item.answerIndex
+      };
+    });
+
+    let physicsWrongAttempts = {};
+    let physicsRevealed = {};
+
+    const biologySeedQuestions = [
+      {
+        question: "What is photosynthesis?",
+        options: ["Breaking down food to release energy", "Making glucose from carbon dioxide and water using light energy", "Absorbing minerals from soil", "Transporting water in xylem"],
+        answerIndex: 1
+      },
+      {
+        question: "Which word equation for photosynthesis is correct?",
+        options: ["glucose + oxygen -> carbon dioxide + water", "carbon dioxide + water -> glucose + oxygen", "water + oxygen -> glucose + carbon dioxide", "chlorophyll + water -> oxygen + carbon dioxide"],
+        answerIndex: 1
+      },
+      {
+        question: "The balanced chemical equation for photosynthesis is:",
+        options: ["6CO2 + 6H2O -> C6H12O6 + 6O2", "C6H12O6 + 6O2 -> 6CO2 + 6H2O", "CO2 + H2O -> CH4 + O2", "6CO2 + O2 -> C6H12O6 + 6H2O"],
+        answerIndex: 0
+      },
+      {
+        question: "Why is photosynthesis important for living organisms?",
+        options: ["It removes all oxygen from air", "It produces food and releases oxygen", "It only cools leaves", "It only happens at night"],
+        answerIndex: 1
+      },
+      {
+        question: "What is the main site of photosynthesis in plant cells?",
+        options: ["Nucleus", "Mitochondrion", "Chloroplast", "Vacuole"],
+        answerIndex: 2
+      },
+      {
+        question: "What is chlorophyll?",
+        options: ["A gas used by plants", "A green pigment that absorbs light energy", "A mineral from soil", "A sugar made in roots"],
+        answerIndex: 1
+      },
+      {
+        question: "Which color of light is chlorophyll best at absorbing?",
+        options: ["Green", "Blue and red", "Yellow only", "Infrared only"],
+        answerIndex: 1
+      },
+      {
+        question: "In a starch test for a leaf, iodine solution turns blue-black if:",
+        options: ["Protein is present", "Fat is present", "Starch is present", "Minerals are present"],
+        answerIndex: 2
+      },
+      {
+        question: "Before testing a leaf for starch, why is the leaf boiled in ethanol?",
+        options: ["To add chlorophyll", "To remove chlorophyll", "To add starch", "To cool the leaf"],
+        answerIndex: 1
+      },
+      {
+        question: "Why is a leaf first placed in hot water during starch testing?",
+        options: ["To stop chemical reactions", "To make the leaf sweeter", "To increase chlorophyll", "To supply minerals"],
+        answerIndex: 0
+      },
+      {
+        question: "Which part of the leaf contains most chloroplasts?",
+        options: ["Palisade mesophyll", "Xylem", "Lower epidermis", "Phloem"],
+        answerIndex: 0
+      },
+      {
+        question: "Which leaf structure controls gas exchange by opening and closing?",
+        options: ["Cuticle", "Guard cells around stomata", "Veins", "Spongy mesophyll"],
+        answerIndex: 1
+      },
+      {
+        question: "What is the function of xylem in a leaf vein?",
+        options: ["Transport sugars", "Transport water and minerals", "Control stomata", "Absorb light"],
+        answerIndex: 1
+      },
+      {
+        question: "What is the function of phloem in a leaf vein?",
+        options: ["Transport water only", "Transport glucose and other food substances", "Produce chlorophyll", "Store oxygen"],
+        answerIndex: 1
+      },
+      {
+        question: "Which mineral is essential for making amino acids and proteins in plants?",
+        options: ["Nitrate", "Magnesium", "Iron", "Calcium"],
+        answerIndex: 0
+      },
+      {
+        question: "Magnesium deficiency mainly affects plants because magnesium is needed for:",
+        options: ["Cell wall hardness", "Chlorophyll formation", "Root hairs", "Stomata opening"],
+        answerIndex: 1
+      },
+      {
+        question: "Which statement best explains the carbon cycle?",
+        options: ["Carbon stays permanently in rocks", "Carbon moves between atmosphere, organisms, oceans, and soil", "Only animals move carbon", "Carbon cannot be recycled"],
+        answerIndex: 1
+      },
+      {
+        question: "Which process removes carbon dioxide from the atmosphere?",
+        options: ["Respiration", "Combustion", "Photosynthesis", "Decomposition"],
+        answerIndex: 2
+      },
+      {
+        question: "Which process adds carbon dioxide to the atmosphere?",
+        options: ["Photosynthesis", "Respiration", "Starch test", "Water uptake"],
+        answerIndex: 1
+      },
+      {
+        question: "Burning fossil fuels affects the carbon cycle by:",
+        options: ["Removing oxygen from water only", "Adding extra carbon dioxide to the atmosphere", "Stopping plant respiration", "Turning all carbon into starch"],
+        answerIndex: 1
+      }
+    ];
+
+    let biologyQuestions = biologySeedQuestions.map(function(item) {
+      return {
+        question: item.question,
+        options: item.options.slice(),
+        answerIndex: item.answerIndex
+      };
+    });
+
+    let biologyWrongAttempts = {};
+    let biologyRevealed = {};
+
+    function resetMathsAttemptState() {
+      mathsWrongAttempts = {};
+      mathsRevealed = {};
+    }
+
+    function resetMathsQuizView() {
+      document.getElementById("mathsQuizForm").reset();
+      document.getElementById("mathsMessage").textContent = "";
+      document.getElementById("mathsMessage").className = "msg";
+      renderMathsResults([]);
+    }
+
+    function revealMathsCorrectAnswer(questionIndex, answerIndex) {
+      const fieldset = document.querySelectorAll("#mathsQuestions .question")[questionIndex];
+      if (!fieldset) {
+        return;
+      }
+
+      fieldset.classList.add("revealed");
+      const radios = fieldset.querySelectorAll("input[type='radio']");
+      radios.forEach(function(radio, idx) {
+        radio.checked = idx === answerIndex;
+        radio.disabled = true;
+      });
+    }
+
+    function renderMathsQuiz() {
+      const container = document.getElementById("mathsQuestions");
+      container.innerHTML = "";
+
+      mathsQuestions.forEach(function(item, questionIndex) {
+        const fieldset = document.createElement("fieldset");
+        fieldset.className = "question";
+
+        const legend = document.createElement("legend");
+        legend.textContent = "Q" + String(questionIndex + 1) + ". " + item.question;
+        fieldset.appendChild(legend);
+
+        const options = document.createElement("div");
+        options.className = "question-options";
+
+        item.options.forEach(function(optionText, optionIndex) {
+          const optionLabel = document.createElement("label");
+          optionLabel.className = "option";
+
+          const input = document.createElement("input");
+          input.type = "radio";
+          input.name = "mathQ" + String(questionIndex);
+          input.value = String(optionIndex);
+
+          const text = document.createElement("span");
+          text.textContent = optionText;
+
+          optionLabel.appendChild(input);
+          optionLabel.appendChild(text);
+          options.appendChild(optionLabel);
+        });
+
+        fieldset.appendChild(options);
+        container.appendChild(fieldset);
+      });
+    }
+
+    function scoreMathsQuiz() {
+      let score = 0;
+      let unanswered = 0;
+      let retryableWrong = 0;
+      let revealedCount = 0;
+      const detailed = [];
+
+      mathsQuestions.forEach(function(item, index) {
+        if (mathsRevealed[index]) {
+          revealedCount += 1;
+          detailed.push({
+            label: "Q" + String(index + 1),
+            value: "Answer revealed: " + item.options[item.answerIndex]
+          });
+          return;
+        }
+
+        const selected = document.querySelector("input[name='mathQ" + String(index) + "']:checked");
+        if (!selected) {
+          unanswered += 1;
+          detailed.push({
+            label: "Q" + String(index + 1),
+            value: "Not answered. Correct: " + item.options[item.answerIndex]
+          });
+          return;
+        }
+
+        const chosenIndex = Number(selected.value);
+        const isCorrect = chosenIndex === item.answerIndex;
+        if (isCorrect) {
+          score += 1;
+          mathsWrongAttempts[index] = 0;
+          detailed.push({
+            label: "Q" + String(index + 1),
+            value: "Correct"
+          });
+          return;
+        }
+
+        const attempts = (mathsWrongAttempts[index] || 0) + 1;
+        mathsWrongAttempts[index] = attempts;
+
+        if (attempts >= 2) {
+          mathsRevealed[index] = true;
+          revealedCount += 1;
+          revealMathsCorrectAnswer(index, item.answerIndex);
+          detailed.push({
+            label: "Q" + String(index + 1),
+            value: "Incorrect twice. Correct answer revealed: " + item.options[item.answerIndex]
+          });
+          return;
+        }
+
+        retryableWrong += 1;
+        detailed.push({
+          label: "Q" + String(index + 1),
+          value: "Incorrect. Try again (attempt " + String(attempts) + " of 2)."
+        });
+
+        selected.checked = false;
+      });
+
+      return {
+        score: score,
+        unanswered: unanswered,
+        retryableWrong: retryableWrong,
+        revealedCount: revealedCount,
+        detailed: detailed
+      };
+    }
+
+    function renderMathsResults(items) {
+      const results = document.getElementById("mathsResults");
+      results.innerHTML = "";
+
+      items.forEach(function(item) {
+        const row = document.createElement("article");
+        row.className = "row";
+
+        const label = document.createElement("div");
+        label.className = "label";
+        label.textContent = item.label;
+
+        const value = document.createElement("div");
+        value.className = "value";
+        value.textContent = item.value;
+
+        row.appendChild(label);
+        row.appendChild(value);
+        results.appendChild(row);
+      });
+    }
+
+    function resetPhysicsAttemptState() {
+      physicsWrongAttempts = {};
+      physicsRevealed = {};
+    }
+
+    function resetPhysicsQuizView() {
+      document.getElementById("physicsQuizForm").reset();
+      document.getElementById("physicsMessage").textContent = "";
+      document.getElementById("physicsMessage").className = "msg";
+      renderPhysicsResults([]);
+    }
+
+    function revealPhysicsCorrectAnswer(questionIndex, answerIndex) {
+      const fieldset = document.querySelectorAll("#physicsQuestions .question")[questionIndex];
+      if (!fieldset) {
+        return;
+      }
+
+      fieldset.classList.add("revealed");
+      const radios = fieldset.querySelectorAll("input[type='radio']");
+      radios.forEach(function(radio, idx) {
+        radio.checked = idx === answerIndex;
+        radio.disabled = true;
+      });
+    }
+
+    function renderPhysicsQuiz() {
+      const container = document.getElementById("physicsQuestions");
+      container.innerHTML = "";
+
+      physicsQuestions.forEach(function(item, questionIndex) {
+        const fieldset = document.createElement("fieldset");
+        fieldset.className = "question";
+
+        const legend = document.createElement("legend");
+        legend.textContent = "Q" + String(questionIndex + 1) + ". " + item.question;
+        fieldset.appendChild(legend);
+
+        const options = document.createElement("div");
+        options.className = "question-options";
+
+        item.options.forEach(function(optionText, optionIndex) {
+          const optionLabel = document.createElement("label");
+          optionLabel.className = "option";
+
+          const input = document.createElement("input");
+          input.type = "radio";
+          input.name = "phyQ" + String(questionIndex);
+          input.value = String(optionIndex);
+
+          const text = document.createElement("span");
+          text.textContent = optionText;
+
+          optionLabel.appendChild(input);
+          optionLabel.appendChild(text);
+          options.appendChild(optionLabel);
+        });
+
+        fieldset.appendChild(options);
+        container.appendChild(fieldset);
+      });
+    }
+
+    function scorePhysicsQuiz() {
+      let score = 0;
+      let unanswered = 0;
+      let retryableWrong = 0;
+      let revealedCount = 0;
+      const detailed = [];
+
+      physicsQuestions.forEach(function(item, index) {
+        if (physicsRevealed[index]) {
+          revealedCount += 1;
+          detailed.push({
+            label: "Q" + String(index + 1),
+            value: "Answer revealed: " + item.options[item.answerIndex]
+          });
+          return;
+        }
+
+        const selected = document.querySelector("input[name='phyQ" + String(index) + "']:checked");
+        if (!selected) {
+          unanswered += 1;
+          detailed.push({
+            label: "Q" + String(index + 1),
+            value: "Not answered. Correct: " + item.options[item.answerIndex]
+          });
+          return;
+        }
+
+        const chosenIndex = Number(selected.value);
+        const isCorrect = chosenIndex === item.answerIndex;
+        if (isCorrect) {
+          score += 1;
+          physicsWrongAttempts[index] = 0;
+          detailed.push({
+            label: "Q" + String(index + 1),
+            value: "Correct"
+          });
+          return;
+        }
+
+        const attempts = (physicsWrongAttempts[index] || 0) + 1;
+        physicsWrongAttempts[index] = attempts;
+
+        if (attempts >= 2) {
+          physicsRevealed[index] = true;
+          revealedCount += 1;
+          revealPhysicsCorrectAnswer(index, item.answerIndex);
+          detailed.push({
+            label: "Q" + String(index + 1),
+            value: "Incorrect twice. Correct answer revealed: " + item.options[item.answerIndex]
+          });
+          return;
+        }
+
+        retryableWrong += 1;
+        detailed.push({
+          label: "Q" + String(index + 1),
+          value: "Incorrect. Try again (attempt " + String(attempts) + " of 2)."
+        });
+
+        selected.checked = false;
+      });
+
+      return {
+        score: score,
+        unanswered: unanswered,
+        retryableWrong: retryableWrong,
+        revealedCount: revealedCount,
+        detailed: detailed
+      };
+    }
+
+    function renderPhysicsResults(items) {
+      const results = document.getElementById("physicsResults");
+      results.innerHTML = "";
+
+      items.forEach(function(item) {
+        const row = document.createElement("article");
+        row.className = "row";
+
+        const label = document.createElement("div");
+        label.className = "label";
+        label.textContent = item.label;
+
+        const value = document.createElement("div");
+        value.className = "value";
+        value.textContent = item.value;
+
+        row.appendChild(label);
+        row.appendChild(value);
+        results.appendChild(row);
+      });
+    }
+
+    function resetBiologyAttemptState() {
+      biologyWrongAttempts = {};
+      biologyRevealed = {};
+    }
+
+    function resetBiologyQuizView() {
+      document.getElementById("biologyQuizForm").reset();
+      document.getElementById("biologyMessage").textContent = "";
+      document.getElementById("biologyMessage").className = "msg";
+      renderBiologyResults([]);
+    }
+
+    function revealBiologyCorrectAnswer(questionIndex, answerIndex) {
+      const fieldset = document.querySelectorAll("#biologyQuestions .question")[questionIndex];
+      if (!fieldset) {
+        return;
+      }
+
+      fieldset.classList.add("revealed");
+      const radios = fieldset.querySelectorAll("input[type='radio']");
+      radios.forEach(function(radio, idx) {
+        radio.checked = idx === answerIndex;
+        radio.disabled = true;
+      });
+    }
+
+    function renderBiologyQuiz() {
+      const container = document.getElementById("biologyQuestions");
+      container.innerHTML = "";
+
+      biologyQuestions.forEach(function(item, questionIndex) {
+        const fieldset = document.createElement("fieldset");
+        fieldset.className = "question";
+
+        const legend = document.createElement("legend");
+        legend.textContent = "Q" + String(questionIndex + 1) + ". " + item.question;
+        fieldset.appendChild(legend);
+
+        const options = document.createElement("div");
+        options.className = "question-options";
+
+        item.options.forEach(function(optionText, optionIndex) {
+          const optionLabel = document.createElement("label");
+          optionLabel.className = "option";
+
+          const input = document.createElement("input");
+          input.type = "radio";
+          input.name = "bioQ" + String(questionIndex);
+          input.value = String(optionIndex);
+
+          const text = document.createElement("span");
+          text.textContent = optionText;
+
+          optionLabel.appendChild(input);
+          optionLabel.appendChild(text);
+          options.appendChild(optionLabel);
+        });
+
+        fieldset.appendChild(options);
+        container.appendChild(fieldset);
+      });
+    }
+
+    function scoreBiologyQuiz() {
+      let score = 0;
+      let unanswered = 0;
+      let retryableWrong = 0;
+      let revealedCount = 0;
+      const detailed = [];
+
+      biologyQuestions.forEach(function(item, index) {
+        if (biologyRevealed[index]) {
+          revealedCount += 1;
+          detailed.push({
+            label: "Q" + String(index + 1),
+            value: "Answer revealed: " + item.options[item.answerIndex]
+          });
+          return;
+        }
+
+        const selected = document.querySelector("input[name='bioQ" + String(index) + "']:checked");
+        if (!selected) {
+          unanswered += 1;
+          detailed.push({
+            label: "Q" + String(index + 1),
+            value: "Not answered. Correct: " + item.options[item.answerIndex]
+          });
+          return;
+        }
+
+        const chosenIndex = Number(selected.value);
+        const isCorrect = chosenIndex === item.answerIndex;
+        if (isCorrect) {
+          score += 1;
+          biologyWrongAttempts[index] = 0;
+          detailed.push({
+            label: "Q" + String(index + 1),
+            value: "Correct"
+          });
+          return;
+        }
+
+        const attempts = (biologyWrongAttempts[index] || 0) + 1;
+        biologyWrongAttempts[index] = attempts;
+
+        if (attempts >= 2) {
+          biologyRevealed[index] = true;
+          revealedCount += 1;
+          revealBiologyCorrectAnswer(index, item.answerIndex);
+          detailed.push({
+            label: "Q" + String(index + 1),
+            value: "Incorrect twice. Correct answer revealed: " + item.options[item.answerIndex]
+          });
+          return;
+        }
+
+        retryableWrong += 1;
+        detailed.push({
+          label: "Q" + String(index + 1),
+          value: "Incorrect. Try again (attempt " + String(attempts) + " of 2)."
+        });
+
+        selected.checked = false;
+      });
+
+      return {
+        score: score,
+        unanswered: unanswered,
+        retryableWrong: retryableWrong,
+        revealedCount: revealedCount,
+        detailed: detailed
+      };
+    }
+
+    function renderBiologyResults(items) {
+      const results = document.getElementById("biologyResults");
+      results.innerHTML = "";
+
+      items.forEach(function(item) {
+        const row = document.createElement("article");
+        row.className = "row";
+
+        const label = document.createElement("div");
+        label.className = "label";
+        label.textContent = item.label;
+
+        const value = document.createElement("div");
+        value.className = "value";
+        value.textContent = item.value;
+
+        row.appendChild(label);
+        row.appendChild(value);
+        results.appendChild(row);
+      });
+    }
+
+    document.getElementById("profileForm").addEventListener("submit", function(event) {
+      event.preventDefault();
+
+      const message = document.getElementById("message");
+      const name = document.getElementById("nameInput").value.trim();
+      const dobInput = document.getElementById("dobInput").value;
+
+      if (!name || !dobInput) {
+        message.className = "msg error";
+        message.textContent = "Please fill in both fields.";
+        renderResults([]);
+        return;
+      }
+
+      const dob = new Date(dobInput + "T00:00:00");
+      if (Number.isNaN(dob.getTime())) {
+        message.className = "msg error";
+        message.textContent = "Invalid date format. Please use YYYY-MM-DD.";
+        renderResults([]);
+        return;
+      }
+
+      const today = new Date();
+      const todayStart = new Date(today.getFullYear(), today.getMonth(), today.getDate());
+      if (dob > todayStart) {
+        message.className = "msg error";
+        message.textContent = "Date of birth cannot be in the future.";
+        renderResults([]);
+        return;
+      }
+
+      const age = formatAge(dob, today);
+      const generation = getGeneration(dob.getFullYear());
+      const days = daysUntilNextBirthday(dob, today);
+
+      message.className = "msg success";
+      message.textContent = "Analysis complete.";
+
+      renderResults([
+        { label: "Reversed name", value: reverseString(name) },
+        { label: "Reversed date of birth", value: reverseString(dobInput) },
+        { label: "Generation", value: generation },
+        { label: "Age", value: age },
+        { label: "Days until next birthday", value: String(days) }
+      ]);
+    });
+
+    document.getElementById("textForm").addEventListener("submit", function(event) {
+      event.preventDefault();
+
+      const message = document.getElementById("textMessage");
+      const text = document.getElementById("textInput").value.trim();
+
+      if (!text) {
+        message.className = "msg error";
+        message.textContent = "Please enter some text.";
+        renderTextResults([]);
+        return;
+      }
+
+      message.className = "msg success";
+      message.textContent = "Text processed.";
+
+      renderTextResults([
+        { label: "Reversed text", value: reverseString(text) },
+        { label: "Character count", value: String(text.length) },
+        { label: "Word count", value: String(countWords(text)) },
+        { label: "Palindrome phrase", value: isPalindromePhrase(text) ? "Yes" : "No" }
+      ]);
+    });
+
+    document.getElementById("chemistryQuizForm").addEventListener("submit", function(event) {
+      event.preventDefault();
+
+      const message = document.getElementById("chemistryMessage");
+      const scored = scoreChemistryQuiz();
+
+      if (scored.unanswered > 0) {
+        message.className = "msg error";
+        message.textContent = "Please answer all questions. Missing: " + String(scored.unanswered);
+        renderChemistryResults(scored.detailed);
+        return;
+      }
+
+      if (scored.retryableWrong > 0) {
+        message.className = "msg error";
+        message.textContent = "You have " + String(scored.retryableWrong) + " incorrect answers. You get one more try for each before the correct answer is shown.";
+        renderChemistryResults(scored.detailed);
+        return;
+      }
+
+      const total = chemistryQuestions.length;
+      const percent = Math.round((scored.score / total) * 100);
+      let band = "Needs more practice";
+      if (percent >= 85) {
+        band = "Excellent";
+      } else if (percent >= 70) {
+        band = "Very good";
+      } else if (percent >= 50) {
+        band = "Good start";
+      }
+
+      message.className = "msg success";
+      message.textContent = "Score: " + String(scored.score) + "/" + String(total) + " (" + String(percent) + "%) - " + band +
+        " | Revealed answers: " + String(scored.revealedCount);
+
+      renderChemistryResults([
+        { label: "Final score", value: String(scored.score) + "/" + String(total) },
+        { label: "Percentage", value: String(percent) + "%" },
+        { label: "Performance", value: band },
+        { label: "Revealed after 2 wrong attempts", value: String(scored.revealedCount) }
+      ].concat(scored.detailed));
+    });
+
+    document.getElementById("shuffleQuizBtn").addEventListener("click", function() {
+      chemistryQuestions = shuffleArray(chemistryQuestions);
+      resetChemistryAttemptState();
+      renderChemistryQuiz();
+      resetChemistryQuizView();
+    });
+
+    document.getElementById("retryQuizBtn").addEventListener("click", function() {
+      chemistryQuestions = chemistrySeedQuestions.map(function(item) {
+        return {
+          question: item.question,
+          options: item.options.slice(),
+          answerIndex: item.answerIndex
+        };
+      });
+      resetChemistryAttemptState();
+      renderChemistryQuiz();
+      resetChemistryQuizView();
+    });
+
+    document.getElementById("mathsQuizForm").addEventListener("submit", function(event) {
+      event.preventDefault();
+
+      const message = document.getElementById("mathsMessage");
+      const scored = scoreMathsQuiz();
+
+      if (scored.unanswered > 0) {
+        message.className = "msg error";
+        message.textContent = "Please answer all questions. Missing: " + String(scored.unanswered);
+        renderMathsResults(scored.detailed);
+        return;
+      }
+
+      if (scored.retryableWrong > 0) {
+        message.className = "msg error";
+        message.textContent = "You have " + String(scored.retryableWrong) + " incorrect answers. You get one more try for each before the correct answer is shown.";
+        renderMathsResults(scored.detailed);
+        return;
+      }
+
+      const total = mathsQuestions.length;
+      const percent = Math.round((scored.score / total) * 100);
+      let band = "Needs more practice";
+      if (percent >= 85) {
+        band = "Excellent";
+      } else if (percent >= 70) {
+        band = "Very good";
+      } else if (percent >= 50) {
+        band = "Good start";
+      }
+
+      message.className = "msg success";
+      message.textContent = "Score: " + String(scored.score) + "/" + String(total) + " (" + String(percent) + "%) - " + band +
+        " | Revealed answers: " + String(scored.revealedCount);
+
+      renderMathsResults([
+        { label: "Final score", value: String(scored.score) + "/" + String(total) },
+        { label: "Percentage", value: String(percent) + "%" },
+        { label: "Performance", value: band },
+        { label: "Revealed after 2 wrong attempts", value: String(scored.revealedCount) }
+      ].concat(scored.detailed));
+    });
+
+    document.getElementById("shuffleMathsBtn").addEventListener("click", function() {
+      mathsQuestions = shuffleArray(mathsQuestions);
+      resetMathsAttemptState();
+      renderMathsQuiz();
+      resetMathsQuizView();
+    });
+
+    document.getElementById("retryMathsBtn").addEventListener("click", function() {
+      mathsQuestions = shuffleArray(mathsQuestionBank).slice(0, 20);
+      resetMathsAttemptState();
+      renderMathsQuiz();
+      resetMathsQuizView();
+    });
+
+    document.getElementById("physicsQuizForm").addEventListener("submit", function(event) {
+      event.preventDefault();
+
+      const message = document.getElementById("physicsMessage");
+      const scored = scorePhysicsQuiz();
+
+      if (scored.unanswered > 0) {
+        message.className = "msg error";
+        message.textContent = "Please answer all questions. Missing: " + String(scored.unanswered);
+        renderPhysicsResults(scored.detailed);
+        return;
+      }
+
+      if (scored.retryableWrong > 0) {
+        message.className = "msg error";
+        message.textContent = "You have " + String(scored.retryableWrong) + " incorrect answers. You get one more try for each before the correct answer is shown.";
+        renderPhysicsResults(scored.detailed);
+        return;
+      }
+
+      const total = physicsQuestions.length;
+      const percent = Math.round((scored.score / total) * 100);
+      let band = "Needs more practice";
+      if (percent >= 85) {
+        band = "Excellent";
+      } else if (percent >= 70) {
+        band = "Very good";
+      } else if (percent >= 50) {
+        band = "Good start";
+      }
+
+      message.className = "msg success";
+      message.textContent = "Score: " + String(scored.score) + "/" + String(total) + " (" + String(percent) + "%) - " + band +
+        " | Revealed answers: " + String(scored.revealedCount);
+
+      renderPhysicsResults([
+        { label: "Final score", value: String(scored.score) + "/" + String(total) },
+        { label: "Percentage", value: String(percent) + "%" },
+        { label: "Performance", value: band },
+        { label: "Revealed after 2 wrong attempts", value: String(scored.revealedCount) }
+      ].concat(scored.detailed));
+    });
+
+    document.getElementById("shufflePhysicsBtn").addEventListener("click", function() {
+      physicsQuestions = shuffleArray(physicsQuestions);
+      resetPhysicsAttemptState();
+      renderPhysicsQuiz();
+      resetPhysicsQuizView();
+    });
+
+    document.getElementById("retryPhysicsBtn").addEventListener("click", function() {
+      physicsQuestions = physicsSeedQuestions.map(function(item) {
+        return {
+          question: item.question,
+          options: item.options.slice(),
+          answerIndex: item.answerIndex
+        };
+      });
+      resetPhysicsAttemptState();
+      renderPhysicsQuiz();
+      resetPhysicsQuizView();
+    });
+
+    document.getElementById("biologyQuizForm").addEventListener("submit", function(event) {
+      event.preventDefault();
+
+      const message = document.getElementById("biologyMessage");
+      const scored = scoreBiologyQuiz();
+
+      if (scored.unanswered > 0) {
+        message.className = "msg error";
+        message.textContent = "Please answer all questions. Missing: " + String(scored.unanswered);
+        renderBiologyResults(scored.detailed);
+        return;
+      }
+
+      if (scored.retryableWrong > 0) {
+        message.className = "msg error";
+        message.textContent = "You have " + String(scored.retryableWrong) + " incorrect answers. You get one more try for each before the correct answer is shown.";
+        renderBiologyResults(scored.detailed);
+        return;
+      }
+
+      const total = biologyQuestions.length;
+      const percent = Math.round((scored.score / total) * 100);
+      let band = "Needs more practice";
+      if (percent >= 85) {
+        band = "Excellent";
+      } else if (percent >= 70) {
+        band = "Very good";
+      } else if (percent >= 50) {
+        band = "Good start";
+      }
+
+      message.className = "msg success";
+      message.textContent = "Score: " + String(scored.score) + "/" + String(total) + " (" + String(percent) + "%) - " + band +
+        " | Revealed answers: " + String(scored.revealedCount);
+
+      renderBiologyResults([
+        { label: "Final score", value: String(scored.score) + "/" + String(total) },
+        { label: "Percentage", value: String(percent) + "%" },
+        { label: "Performance", value: band },
+        { label: "Revealed after 2 wrong attempts", value: String(scored.revealedCount) }
+      ].concat(scored.detailed));
+    });
+
+    document.getElementById("shuffleBiologyBtn").addEventListener("click", function() {
+      biologyQuestions = shuffleArray(biologyQuestions);
+      resetBiologyAttemptState();
+      renderBiologyQuiz();
+      resetBiologyQuizView();
+    });
+
+    document.getElementById("retryBiologyBtn").addEventListener("click", function() {
+      biologyQuestions = biologySeedQuestions.map(function(item) {
+        return {
+          question: item.question,
+          options: item.options.slice(),
+          answerIndex: item.answerIndex
+        };
+      });
+      resetBiologyAttemptState();
+      renderBiologyQuiz();
+      resetBiologyQuizView();
+    });
+
+    document.querySelectorAll(".tab-btn").forEach(function(button) {
+      button.addEventListener("click", function() {
+        activateTab(button);
+      });
+    });
+
+    renderChemistryQuiz();
+    resetChemistryAttemptState();
+    renderMathsQuiz();
+    resetMathsAttemptState();
+    renderPhysicsQuiz();
+    resetPhysicsAttemptState();
+    renderBiologyQuiz();
+    resetBiologyAttemptState();
+
+    (function setDobMaxToToday() {
+      const dobInput = document.getElementById("dobInput");
+      const today = new Date();
+      const month = String(today.getMonth() + 1).padStart(2, "0");
+      const day = String(today.getDate()).padStart(2, "0");
+      const maxDate = today.getFullYear() + "-" + month + "-" + day;
+      dobInput.setAttribute("max", maxDate);
+    })();
+  </script>
+</body>
+</html>
