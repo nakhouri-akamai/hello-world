@@ -303,15 +303,15 @@
 
     <section class="apps">
       <nav class="tabs" aria-label="App switcher">
-        <button type="button" class="tab-btn active" id="tabProfile" data-target="profileApp" aria-selected="true">Profile Analyzer</button>
+        <button type="button" class="tab-btn" id="tabProfile" data-target="profileApp" aria-selected="false">Profile Analyzer</button>
         <button type="button" class="tab-btn" id="tabText" data-target="textApp" aria-selected="false">Text Utility</button>
         <button type="button" class="tab-btn" id="tabChemistry" data-target="chemistryApp" aria-selected="false">Chemistry Quiz</button>
         <button type="button" class="tab-btn" id="tabMaths" data-target="mathsApp" aria-selected="false">Maths Quiz</button>
         <button type="button" class="tab-btn" id="tabPhysics" data-target="physicsApp" aria-selected="false">Physics Quiz</button>
-        <button type="button" class="tab-btn" id="tabBiology" data-target="biologyApp" aria-selected="false">Biology Quiz</button>
+        <button type="button" class="tab-btn active" id="tabBiology" data-target="biologyApp" aria-selected="true">Biology Quiz</button>
       </nav>
 
-      <article class="app-card" id="profileApp">
+      <article class="app-card hidden" id="profileApp">
         <h2>App 1: Profile Reverse Analyzer</h2>
         <p class="app-sub">Enter a name and date of birth to reverse inputs, calculate age, classify generation, and count days to next birthday.</p>
 
@@ -398,7 +398,7 @@
         <section id="physicsResults" class="results" aria-live="polite"></section>
       </article>
 
-      <article class="app-card hidden" id="biologyApp">
+      <article class="app-card" id="biologyApp">
         <h2>App 6: Grade 8 IGCSE Biology Quiz</h2>
         <p class="app-sub">20 questions on photosynthesis, leaf structure, minerals, and the carbon cycle. Answer all questions, then submit to get your score.</p>
 
