@@ -90,9 +90,6 @@ public class ReverseNameNew {
 
     /**
      * Prompts the user for a date of birth until a valid non-future date is entered.
-     * <p>
-     * Input is validated using {@link LocalDate#parse(CharSequence)} to ensure both
-     * formatting and calendar correctness.
      *
      * @param scanner scanner used to read console input
      * @return a valid date of birth that is not in the future
@@ -126,9 +123,6 @@ public class ReverseNameNew {
 
     /**
      * Formats the user's age as a readable string.
-     * <p>
-     * If the user is at least one year old, the age is returned in years.
-     * Otherwise, the age is returned in months.
      *
      * @param dob date of birth used to calculate age
      * @return a human-readable age string
@@ -147,9 +141,6 @@ public class ReverseNameNew {
 
     /**
      * Calculates the number of days until the user's next birthday.
-     * <p>
-     * The birthday is first computed for the current year. If that date has already
-     * passed, the calculation rolls forward to the next year.
      *
      * @param dob date of birth used to calculate the next birthday
      * @return number of days until the next birthday
