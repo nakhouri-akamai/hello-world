@@ -4,24 +4,61 @@ import java.time.format.DateTimeParseException;
 import java.time.temporal.ChronoUnit;
 import java.util.Scanner;
 
+/**
+ * Console application that reads a user's name and date of birth, then prints
+ * the reversed name, reversed date of birth, generation label, age, and days
+ * until the next birthday.
+ */
 public class ReverseNameNew {
 
-    // Generation Label Constants (Refactored: moved string literals to constants)
+    /**
+     * Generation label for people born in the Silent Generation.
+     */
     private static final String SILENT = "Silent Generation";
+
+    /**
+     * Generation label for people born in the Baby Boomer generation.
+     */
     private static final String BOOMER = "Baby Boomer";
+
+    /**
+     * Generation label for people born in Generation X.
+     */
     private static final String GEN_X = "Generation X";
+
+    /**
+     * Generation label for people born in the Millennial generation.
+     */
     private static final String MILLENNIAL = "Millennial";
+
+    /**
+     * Generation label for people born in Generation Z.
+     */
     private static final String GEN_Z = "Generation Z";
+
+    /**
+     * Generation label for people born in Generation Alpha.
+     */
     private static final String GEN_ALPHA = "Generation Alpha";
+
+    /**
+     * Default generation label used when a birth year does not match a known range.
+     */
     private static final String UNKNOWN = "Unknown Generation";
+
+    /**
+     * Fallback message returned when a date cannot be processed as expected.
+     */
     private static final String INVALID_FORMAT = "Invalid Date Format";
 
+    /**
+     * Application entry point.
+     *
+     * @param args command-line arguments passed to the program
+     */
     public static void main(String[] args) {
-        // Refactored: Use try-with-resources for automatic resource management (Scanner closed automatically)
         try (Scanner scanner = new Scanner(System.in)) {
-            // Refactored: Use prompt helper function
             String name = prompt(scanner, "Enter your name: ");
-            // Refactored: Use reusable reverse function
             String reversedName = reverse(name);
 
             LocalDate dob = promptDateOfBirth(scanner);
@@ -39,13 +76,24 @@ public class ReverseNameNew {
         }
     }
 
-    // Refactored: prompt helper to reduce code duplication and clarify intentions
+    /**
+     * Displays a prompt and returns the user's input.
+     *
+     * @param scanner scanner used to read console input
+     * @param message message displayed to the user
+     * @return the entered text
+     */
     private static String prompt(Scanner scanner, String message) {
         System.out.print(message);
         return scanner.nextLine();
     }
 
-    // Validates both date format and calendar validity using LocalDate parsing.
+    /**
+     * Prompts the user for a date of birth until a valid non-future date is entered.
+     *
+     * @param scanner scanner used to read console input
+     * @return a valid date of birth that is not in the future
+     */
     private static LocalDate promptDateOfBirth(Scanner scanner) {
         while (true) {
             System.out.print("Enter your date of birth (YYYY-MM-DD): ");
@@ -63,11 +111,22 @@ public class ReverseNameNew {
         }
     }
 
-    // Refactored: common reverse string functionality encapsulated in one method
+    /**
+     * Reverses the supplied string.
+     *
+     * @param input string to reverse
+     * @return the reversed string
+     */
     private static String reverse(String input) {
         return new StringBuilder(input).reverse().toString();
     }
 
+    /**
+     * Formats the user's age as a readable string.
+     *
+     * @param dob date of birth used to calculate age
+     * @return a human-readable age string
+     */
     private static String formatAge(LocalDate dob) {
         Period agePeriod = Period.between(dob, LocalDate.now());
         int years = agePeriod.getYears();
@@ -80,6 +139,12 @@ public class ReverseNameNew {
         return months + " months";
     }
 
+    /**
+     * Calculates the number of days until the user's next birthday.
+     *
+     * @param dob date of birth used to calculate the next birthday
+     * @return number of days until the next birthday
+     */
     private static long daysUntilNextBirthday(LocalDate dob) {
         LocalDate today = LocalDate.now();
         LocalDate nextBirthday = dob.withYear(today.getYear());
@@ -91,7 +156,12 @@ public class ReverseNameNew {
         return ChronoUnit.DAYS.between(today, nextBirthday);
     }
 
-    // Refactored: uses label constants
+    /**
+     * Determines the generation associated with the supplied date of birth.
+     *
+     * @param dob date of birth used to determine generation
+     * @return generation label matching the birth year
+     */
     public static String getGeneration(LocalDate dob) {
         try {
             int year = dob.getYear();
