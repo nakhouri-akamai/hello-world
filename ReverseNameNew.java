@@ -5,74 +5,69 @@ import java.time.temporal.ChronoUnit;
 import java.util.Scanner;
 
 /**
- * A small console application that accepts a user's name and date of birth,
- * then prints the reversed name, reversed birth date, generation label, age,
- * and number of days until the next birthday.
+ * Console application that reads a user's name and date of birth, then prints
+ * the reversed name, reversed date of birth, generation label, age, and days
+ * until the next birthday.
  */
 public class ReverseNameNew {
 
     /**
-     * Label used for people born in the Silent Generation.
+     * Generation label for people born in the Silent Generation.
      */
     private static final String SILENT = "Silent Generation";
 
     /**
-     * Label used for people born in the Baby Boomer generation.
+     * Generation label for people born in the Baby Boomer generation.
      */
     private static final String BOOMER = "Baby Boomer";
 
     /**
-     * Label used for people born in Generation X.
+     * Generation label for people born in Generation X.
      */
     private static final String GEN_X = "Generation X";
 
     /**
-     * Label used for people born in the Millennial generation.
+     * Generation label for people born in the Millennial generation.
      */
     private static final String MILLENNIAL = "Millennial";
 
     /**
-     * Label used for people born in Generation Z.
+     * Generation label for people born in Generation Z.
      */
     private static final String GEN_Z = "Generation Z";
 
     /**
-     * Label used for people born in Generation Alpha.
+     * Generation label for people born in Generation Alpha.
      */
     private static final String GEN_ALPHA = "Generation Alpha";
 
     /**
-     * Fallback label used when a birth year does not match any known generation.
+     * Default generation label used when a birth year does not match a known range.
      */
     private static final String UNKNOWN = "Unknown Generation";
 
     /**
-     * Fallback response used when date parsing fails unexpectedly.
+     * Fallback message returned when a date cannot be processed as expected.
      */
     private static final String INVALID_FORMAT = "Invalid Date Format";
 
     /**
-     * Program entry point.
+     * Application entry point.
      *
-     * @param args command-line arguments passed to the application
+     * @param args command-line arguments passed to the program
      */
     public static void main(String[] args) {
-        // Try-with-resources automatically closes the Scanner when the program ends.
         try (Scanner scanner = new Scanner(System.in)) {
-            // Ask the user for their name and reverse the text.
             String name = prompt(scanner, "Enter your name: ");
             String reversedName = reverse(name);
 
-            // Read and validate the date of birth before using it in the program.
             LocalDate dob = promptDateOfBirth(scanner);
             String reversedDob = reverse(dob.toString());
 
-            // Use the date of birth to calculate several pieces of information.
             String generation = getGeneration(dob);
             String age = formatAge(dob);
             long daysUntilBirthday = daysUntilNextBirthday(dob);
 
-            // Print the results in a simple, user-friendly format.
             System.out.println("Reversed name: " + reversedName);
             System.out.println("Reversed Date of Birth: " + reversedDob);
             System.out.println("Generation: " + generation);
@@ -82,11 +77,11 @@ public class ReverseNameNew {
     }
 
     /**
-     * Displays a prompt message and returns the user's input.
+     * Displays a prompt and returns the user's input.
      *
      * @param scanner scanner used to read console input
-     * @param message message shown to the user
-     * @return the text entered by the user
+     * @param message message displayed to the user
+     * @return the entered text
      */
     private static String prompt(Scanner scanner, String message) {
         System.out.print(message);
@@ -94,10 +89,10 @@ public class ReverseNameNew {
     }
 
     /**
-     * Repeatedly asks the user for a date of birth until a valid, non-future date is entered.
+     * Prompts the user for a date of birth until a valid non-future date is entered.
      * <p>
-     * The method uses {@link LocalDate#parse(CharSequence)} to validate both the format
-     * and the calendar correctness of the input.
+     * Input is validated using {@link LocalDate#parse(CharSequence)} to ensure both
+     * formatting and calendar correctness.
      *
      * @param scanner scanner used to read console input
      * @return a valid date of birth that is not in the future
@@ -108,15 +103,12 @@ public class ReverseNameNew {
             String dobInput = scanner.nextLine().trim();
             try {
                 LocalDate dob = LocalDate.parse(dobInput);
-
-                // Prevent future dates because a birth date must be today or earlier.
                 if (dob.isAfter(LocalDate.now())) {
                     System.out.println("Date of birth cannot be in the future.");
                     continue;
                 }
                 return dob;
             } catch (DateTimeParseException e) {
-                // Show a clear message when the input cannot be parsed as a date.
                 System.out.println("Invalid date format. Please use YYYY-MM-DD.");
             }
         }
@@ -125,8 +117,8 @@ public class ReverseNameNew {
     /**
      * Reverses the supplied string.
      *
-     * @param input the text to reverse
-     * @return the reversed text
+     * @param input string to reverse
+     * @return the reversed string
      */
     private static String reverse(String input) {
         return new StringBuilder(input).reverse().toString();
@@ -135,11 +127,11 @@ public class ReverseNameNew {
     /**
      * Formats the user's age as a readable string.
      * <p>
-     * If the person has at least one full year of age, the value is returned in years.
-     * Otherwise, the value is returned in months.
+     * If the user is at least one year old, the age is returned in years.
+     * Otherwise, the age is returned in months.
      *
      * @param dob date of birth used to calculate age
-     * @return age as a human-readable string
+     * @return a human-readable age string
      */
     private static String formatAge(LocalDate dob) {
         Period agePeriod = Period.between(dob, LocalDate.now());
@@ -154,19 +146,18 @@ public class ReverseNameNew {
     }
 
     /**
-     * Calculates the number of days remaining until the user's next birthday.
+     * Calculates the number of days until the user's next birthday.
      * <p>
-     * The method first checks the birthday in the current year. If that date has already
-     * passed, it advances the birthday to the next year.
+     * The birthday is first computed for the current year. If that date has already
+     * passed, the calculation rolls forward to the next year.
      *
-     * @param dob date of birth used to compute the next birthday
+     * @param dob date of birth used to calculate the next birthday
      * @return number of days until the next birthday
      */
     private static long daysUntilNextBirthday(LocalDate dob) {
         LocalDate today = LocalDate.now();
         LocalDate nextBirthday = dob.withYear(today.getYear());
 
-        // If the birthday already happened this year, move to the next year.
         if (nextBirthday.isBefore(today)) {
             nextBirthday = nextBirthday.plusYears(1);
         }
@@ -175,10 +166,10 @@ public class ReverseNameNew {
     }
 
     /**
-     * Determines the generation associated with a birth year.
+     * Determines the generation associated with the supplied date of birth.
      *
-     * @param dob date of birth used to determine the generation
-     * @return generation label for the supplied date of birth
+     * @param dob date of birth used to determine generation
+     * @return generation label matching the birth year
      */
     public static String getGeneration(LocalDate dob) {
         try {
@@ -200,7 +191,6 @@ public class ReverseNameNew {
                 return UNKNOWN;
             }
         } catch (Exception e) {
-            // Returns a safe fallback value if anything unexpected happens.
             return INVALID_FORMAT;
         }
     }
