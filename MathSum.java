@@ -1,7 +1,5 @@
-import javax.swing.*;
 import java.awt.*;
-import java.awt.event.ActionEvent;
-import java.awt.event.ActionListener;
+import javax.swing.*;
 
 public class MathSum extends JFrame {
     private final JTextField displayField = new JTextField();
@@ -10,6 +8,7 @@ public class MathSum extends JFrame {
     private final JButton subtractButton = new JButton("-");
     private final JButton multiplyButton = new JButton("×");
     private final JButton divideButton = new JButton("÷");
+    private final JButton exponentButton = new JButton("^");
     private final JButton equalsButton = new JButton("=");
     private final JButton clearButton = new JButton("C");
     private final JButton decimalButton = new JButton(".");
@@ -39,7 +38,7 @@ public class MathSum extends JFrame {
         mainPanel.add(displayField, BorderLayout.NORTH);
 
         JPanel buttonPanel = new JPanel();
-        buttonPanel.setLayout(new GridLayout(5, 3, 10, 10));
+        buttonPanel.setLayout(new GridLayout(6, 3, 10, 10));
         buttonPanel.setBackground(new Color(240, 240, 240));
 
         for (int i = 1; i <= 9; i++) {
@@ -75,6 +74,10 @@ public class MathSum extends JFrame {
         divideButton.setFont(new Font("SansSerif", Font.BOLD, 24));
         styleButton(divideButton, new Color(220, 230, 255));
         buttonPanel.add(divideButton);
+
+        exponentButton.setFont(new Font("SansSerif", Font.BOLD, 24));
+        styleButton(exponentButton, new Color(220, 230, 255));
+        buttonPanel.add(exponentButton);
 
         equalsButton.setFont(new Font("SansSerif", Font.BOLD, 24));
         styleButton(equalsButton, new Color(200, 255, 200));
@@ -116,6 +119,7 @@ public class MathSum extends JFrame {
         subtractButton.addActionListener(e -> handleOperator("-"));
         multiplyButton.addActionListener(e -> handleOperator("*"));
         divideButton.addActionListener(e -> handleOperator("/"));
+        exponentButton.addActionListener(e -> handleOperator("^"));
     }
 
     private void appendDecimal() {
@@ -138,28 +142,9 @@ public class MathSum extends JFrame {
 
         double currentValue = Double.parseDouble(displayField.getText());
         if (!startNewNumber) {
-            switch (operator) {
-                case "+":
-                    firstNumber += currentValue;
-                    break;
-                case "-":
-                    firstNumber -= currentValue;
-                    break;
-                case "*":
-                    firstNumber *= currentValue;
-                    break;
-                case "/":
-                    if (currentValue == 0) {
-                        displayField.setText("Error");
-                        startNewNumber = true;
-                        return;
-                    }
-                    firstNumber /= currentValue;
-                    break;
-                default:
-                    break;
+            if (!tryCalculate(currentValue)) {
+                return;
             }
-            displayField.setText(String.valueOf(firstNumber));
         }
 
         operator = selectedOperator;
@@ -172,30 +157,22 @@ public class MathSum extends JFrame {
         }
 
         double currentValue = Double.parseDouble(displayField.getText());
-        switch (operator) {
-            case "+":
-                firstNumber += currentValue;
-                break;
-            case "-":
-                firstNumber -= currentValue;
-                break;
-            case "*":
-                firstNumber *= currentValue;
-                break;
-            case "/":
-                if (currentValue == 0) {
-                    displayField.setText("Error");
-                    startNewNumber = true;
-                    return;
-                }
-                firstNumber /= currentValue;
-                break;
-            default:
-                break;
+        if (!tryCalculate(currentValue)) {
+            return;
         }
-
-        displayField.setText(String.valueOf(firstNumber));
         startNewNumber = true;
+    }
+
+    private boolean tryCalculate(double currentValue) {
+        try {
+            firstNumber = CalculatorEngine.calculate(firstNumber, operator, currentValue);
+            displayField.setText(String.valueOf(firstNumber));
+            return true;
+        } catch (ArithmeticException e) {
+            displayField.setText("Error");
+            startNewNumber = true;
+            return false;
+        }
     }
 
     private void clearDisplay() {
